@@ -8,17 +8,6 @@
 #ifndef USER_MY_SPI_SLAVE_H_
 #define USER_MY_SPI_SLAVE_H_
 
-// typedef struct
-// {
-//     uint8_t Reserve;
-//     uint8_t Device_Info;
-//     uint8_t Control_Valve;
-//     uint8_t Check_Valve;
-//     uint8_t Error_Valve;
-//     uint16_t Input_Power;
-//     uint16_t Output_Power;
-// }MY_PD_CONTROL;
-
 extern UINT8  Tmr_Ms_Dlt;
 
 void my_SPI_Master_Init();
