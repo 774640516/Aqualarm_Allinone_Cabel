@@ -23,6 +23,12 @@
 #include "my_I2C_Device.h"
 #include "my_PD_Device.h"
 
+uint16_t set_Vbus;
+
+uint8_t valve_connect_status = 0;
+uint8_t valve_status = 0;
+uint16_t valve_time = 0;
+
 void my_rcc()
 {
     RCC_APB2PeriphClockCmd(RCC_APB2Periph_SPI1 | RCC_APB2Periph_USART1 | RCC_APB2Periph_GPIOA | RCC_APB2Periph_GPIOB | RCC_APB2Periph_GPIOC |
@@ -30,11 +36,6 @@ void my_rcc()
                                RCC_AHBPeriph_USBPD | RCC_APB2Periph_TIM1 | RCC_APB1Periph_TIM3 | RCC_APB1Periph_I2C1 | RCC_AHBPeriph_USBFS,
                            ENABLE);
 }
-uint16_t set_Vbus;
-
-uint8_t valve_connect_status = 0;
-uint8_t valve_status = 0;
-uint16_t valve_time;
 
 void IWDG_Feed_Init(u16 prer, u16 rlr)
 {
@@ -44,11 +45,9 @@ void IWDG_Feed_Init(u16 prer, u16 rlr)
     IWDG_ReloadCounter();
     IWDG_Enable();
 }
-uint16_t b2_time = 0;
 
 int main(void)
 {
-    // static uint8_t test_button_time, test_delay_time = 0, test_spi_id = 1;
     NVIC_PriorityGroupConfig(NVIC_PriorityGroup_1);
     SystemCoreClockUpdate();
     Delay_Init();
@@ -67,12 +66,9 @@ int main(void)
     PD_Init();
 
     TIM1_Init(999, 48 - 1);
-    TIM2_Init(999, 48 - 1);
     IIC_Init(80000, 0x02);
     my_SC8726_Init();
-
     my_SPI_Master_Init(); 
-
     IWDG_Feed_Init(IWDG_Prescaler_128, 4000);
 
     while (1)
