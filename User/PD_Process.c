@@ -1228,7 +1228,7 @@ void PD_Main_Proc()
             {
                 PDO_Request(PDO_Len);
 
-                snk_vbus_type = 3;
+                snk_vbus_type = PDO_Len;
                 snk_vbus_current = PD_Rx_Buf[2 + (PDO_Len - 1) * 4] + ((PD_Rx_Buf[3 + (PDO_Len - 1) * 4] & 0x01) << 8);
             }
             break;
