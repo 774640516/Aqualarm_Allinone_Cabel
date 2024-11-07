@@ -8,6 +8,7 @@ C_SRCS += \
 ../User/PD_Process.c \
 ../User/button.c \
 ../User/ch32x035_it.c \
+../User/factory.c \
 ../User/key.c \
 ../User/led.c \
 ../User/main.c \
@@ -24,6 +25,7 @@ OBJS += \
 ./User/PD_Process.o \
 ./User/button.o \
 ./User/ch32x035_it.o \
+./User/factory.o \
 ./User/key.o \
 ./User/led.o \
 ./User/main.o \
@@ -40,6 +42,7 @@ C_DEPS += \
 ./User/PD_Process.d \
 ./User/button.d \
 ./User/ch32x035_it.d \
+./User/factory.d \
 ./User/key.d \
 ./User/led.d \
 ./User/main.d \
@@ -55,6 +58,6 @@ C_DEPS += \
 
 # Each subdirectory must supply rules for building sources it contributes
 User/%.o: ../User/%.c
-	@	@	riscv-none-embed-gcc -march=rv32imacxw -mabi=ilp32 -msmall-data-limit=8 -msave-restore -Os -fmessage-length=0 -fsigned-char -ffunction-sections -fdata-sections -fno-common -Wunused -Wuninitialized  -g -I"C:\Users\GW\Downloads\Aqualarm_Allinone_Cabel-master (1)\Aqualarm_Allinone_Cabel-master\Debug" -I"C:\Users\GW\Downloads\Aqualarm_Allinone_Cabel-master (1)\Aqualarm_Allinone_Cabel-master\Core" -I"C:\Users\GW\Downloads\Aqualarm_Allinone_Cabel-master (1)\Aqualarm_Allinone_Cabel-master\User" -I"C:\Users\GW\Downloads\Aqualarm_Allinone_Cabel-master (1)\Aqualarm_Allinone_Cabel-master\Peripheral\inc" -std=gnu99 -MMD -MP -MF"$(@:%.o=%.d)" -MT"$(@)" -c -o "$@" "$<"
+	@	@	riscv-none-embed-gcc -march=rv32imacxw -mabi=ilp32 -msmall-data-limit=8 -msave-restore -Os -fmessage-length=0 -fsigned-char -ffunction-sections -fdata-sections -fno-common -Wunused -Wuninitialized  -g -I"C:\Users\GW\Desktop\Aqualarm_Allinone_Cabel-master\Debug" -I"C:\Users\GW\Desktop\Aqualarm_Allinone_Cabel-master\Core" -I"C:\Users\GW\Desktop\Aqualarm_Allinone_Cabel-master\User" -I"C:\Users\GW\Desktop\Aqualarm_Allinone_Cabel-master\Peripheral\inc" -std=gnu99 -MMD -MP -MF"$(@:%.o=%.d)" -MT"$(@)" -c -o "$@" "$<"
 	@	@
 

@@ -15,13 +15,18 @@ static uint8_t valve_status = 0;
 static uint8_t valve_valid = 1;
 static uint8_t valve_check_tick = 0;
 
+uint8_t internal_valve_open_result = 0;  // 0:normal,1:warning
+uint8_t internal_valve_close_result = 0; // 0:normal,1:warning
+uint8_t internal_valve_check_result = 0; // 0:normal,1:warning
+uint8_t external_valve_open_result = 0;  // 0:normal,1:warning
+uint8_t external_valve_close_result = 0; // 0:normal,1:warning
+uint8_t external_valve_check_result = 0; // 0:normal,1:warning
+
 uint32_t valve_tick = 0;
 uint32_t valve_check_test_time = 0;
 
-#define VALVE_STATUS_CLOSE   0
-#define VALVE_STATUS_OPEN    1
-
-#define VALVE_CHECK_TEST     0
+#define VALVE_STATUS_CLOSE 0
+#define VALVE_STATUS_OPEN 1
 
 struct valve_timer
 {
@@ -43,7 +48,7 @@ extern WariningEvent InternalValveFailEvent;
 
 void valve_turn_control(int dir)
 {
-    if(dir < 0)
+    if (dir < 0)
     {
         valve_status = VALVE_STATUS_CLOSE;
         GPIO_WriteBit(GPIOB, GPIO_Pin_12, Bit_RESET);
@@ -57,7 +62,7 @@ void valve_turn_control(int dir)
 
 void valve_open(void)
 {
-    if(valve_valid == 0 || pd_chip_lock_voltage_get() < 3)
+    if (valve_valid == 0 || pd_chip_lock_voltage_get() < 3)
     {
         led_valve_fail();
         return;
@@ -78,7 +83,7 @@ void valve_open(void)
 
 void valve_close(void)
 {
-    if(valve_valid == 0)
+    if (valve_valid == 0)
     {
         led_valve_fail();
         valve_turn_control(-1);
@@ -115,10 +120,10 @@ void valve_check(void)
 
 void valva_check_timer_callback(void *parameter)
 {
-    switch(valve_check_tick++)
+    switch (valve_check_tick++)
     {
-    case 0://start turn
-        if(valve_status == VALVE_STATUS_OPEN)
+    case 0: // start turn
+        if (valve_status == VALVE_STATUS_OPEN)
         {
             valve_turn_control(1);
             my_Valve_Controls_Check();
@@ -128,45 +133,57 @@ void valva_check_timer_callback(void *parameter)
             valve_timer_stop(&valve_check_timer);
         }
         break;
-    case 15://check start and turn back
-        if(GPIO_ReadInputDataBit(GPIOB,GPIO_Pin_4) == 0)
+    case 15: // check start and turn back
+        if (GPIO_ReadInputDataBit(GPIOB, GPIO_Pin_4) == 0)
         {
             valve_turn_control(-1);
         }
         else
         {
             valve_valid = 0;
+            internal_valve_check_result = 1;
             valve_timer_stop(&valve_check_timer);
             warning_enable(InternalValveFailEvent);
         }
         break;
-    case 20://check back and turn forward
-        if(GPIO_ReadInputDataBit(GPIOB,GPIO_Pin_4) == 1)
+    case 20: // check back and turn forward
+        if (GPIO_ReadInputDataBit(GPIOB, GPIO_Pin_4) == 1)
         {
             valve_turn_control(1);
         }
         else
         {
             valve_valid = 0;
+            internal_valve_check_result = 1;
             valve_timer_stop(&valve_check_timer);
             warning_enable(InternalValveFailEvent);
         }
         break;
-    case 28://check forward
-        if(GPIO_ReadInputDataBit(GPIOB,GPIO_Pin_4) == 0)
+    case 28: // check forward
+        if (GPIO_ReadInputDataBit(GPIOB, GPIO_Pin_4) == 0)
         {
             valve_valid = 1;
+            internal_valve_check_result = 0;
             valvefail_warning_disable();
         }
         else
         {
             valve_valid = 0;
+            internal_valve_check_result = 1;
             valve_timer_stop(&valve_check_timer);
             warning_enable(InternalValveFailEvent);
         }
         break;
-    case 30://check external,stop all
+    case 30: // check external,stop all
         valve_timer_stop(&valve_check_timer);
+        if (my_Valve_Get_Error() & 0x04 == 0)
+        {
+            external_valve_check_result = 0;
+        }
+        else
+        {
+            external_valve_check_result = 1;
+        }
         break;
     default:
         break;
@@ -175,38 +192,65 @@ void valva_check_timer_callback(void *parameter)
 
 void valve_open_timer_callback(void *parameter)
 {
-    uint8_t internal_valve_result = GPIO_ReadInputDataBit(GPIOB,GPIO_Pin_4);
-    uint8_t external_valve_result = my_Valve_Get_Error() & 0x02;
+    uint8_t internal_valve_open_status = GPIO_ReadInputDataBit(GPIOB, GPIO_Pin_4);
+    uint8_t external_valve_open_status = my_Valve_Get_Error() & 0x02;
 
-    if(internal_valve_result == 0)
+    if (internal_valve_open_status == 0)
     {
         valve_valid = 1;
+        internal_valve_open_result = 0;
         valvefail_warning_disable();
         printf("valve_open_timer_callback internal_valve_check success");
     }
     else
     {
         valve_valid = 0;
+        internal_valve_open_result = 1;
         warning_enable(InternalValveFailEvent);
         printf("valve_open_timer_callback internal_valve_check failed");
+    }
+
+    if (external_valve_open_status == 0)
+    {
+        external_valve_open_result = 0;
+        printf("valve_open_timer_callback external_valve_check success\r\n");
+    }
+    else
+    {
+        external_valve_open_result = 1;
+        printf("valve_open_timer_callback external_valve_check failed");
     }
 }
 
 void valve_close_timer_callback(void *parameter)
 {
-    uint8_t internal_valve_result = GPIO_ReadInputDataBit(GPIOB,GPIO_Pin_8);
-    uint8_t external_valve_result = my_Valve_Get_Error() & 0x01;
-    if(internal_valve_result == 0)
+    uint8_t internal_valve_close_status = GPIO_ReadInputDataBit(GPIOB, GPIO_Pin_8);
+    uint8_t external_valve_close_status = my_Valve_Get_Error() & 0x01;
+    if (internal_valve_close_status == 0)
     {
         valve_valid = 1;
+        internal_valve_close_result = 0;
         valvefail_warning_disable();
         printf("valve_close_timer_callback internal_valve_check success");
     }
     else
     {
         valve_valid = 0;
+        internal_valve_close_result = 1;
         warning_enable(InternalValveFailEvent);
         printf("valve_close_timer_callback internal_valve_check failed");
+    }
+
+    if (external_valve_close_status == 0)
+    {
+        external_valve_close_result = 0;
+        printf("valve_close_timer_callback external_valve_check success\r\n");
+    }
+    else
+    {
+        external_valve_close_result = 1;
+        //        gateway_warning_master_valve_check(4);
+        printf("valve_close_timer_callback external_valve_check failed");
     }
 }
 
@@ -222,11 +266,11 @@ void valve_open_once_timer_callback(void *parameter)
 
 void valve_timer_check(struct valve_timer *timer)
 {
-    if(timer->status)
+    if (timer->status)
     {
-        if(timer->self_tick++ >= timer->init_tick)
+        if (timer->self_tick++ >= timer->init_tick)
         {
-            if(timer->periodic)
+            if (timer->periodic)
             {
                 timer->self_tick = 0;
             }
@@ -239,7 +283,7 @@ void valve_timer_check(struct valve_timer *timer)
     }
 }
 
-void valve_timer_init(struct valve_timer *timer,void (*timeout_func)(void *parameter),uint32_t timeout,uint8_t periodic)
+void valve_timer_init(struct valve_timer *timer, void (*timeout_func)(void *parameter), uint32_t timeout, uint8_t periodic)
 {
     timer->status = 0;
     timer->init_tick = timeout;
@@ -260,26 +304,7 @@ void valve_timer_stop(struct valve_timer *timer)
 
 void valve_handle(void)
 {
-#if VALVE_CHECK_TEST == 1
-    extern UINT8 Tmr_Ms_Dlt;
-    if(GPIO_ReadInputDataBit(GPIOB, GPIO_Pin_0) == 0)
-    {
-        if(valve_check_test_time < 3000)
-        {
-            valve_check_test_time += Tmr_Ms_Dlt;
-            if(valve_check_test_time >= 3000)
-            {
-                printf("valve_check\r\n");
-                valve_check();
-            }
-        }
-    }
-    else
-    {
-        valve_check_test_time = 0;
-    }
-#endif
-    if(valve_tick > 0)
+    if (valve_tick > 0)
     {
         valve_tick = 0;
         valve_timer_check(&valve_open_timer);
@@ -310,10 +335,23 @@ void valve_init(void)
     GPIO_Init(GPIOB, &GPIO_InitStructure);
     GPIO_WriteBit(GPIOB, GPIO_Pin_12, Bit_RESET);
 
-    valve_timer_init(&valve_open_timer,valve_open_timer_callback,30000,0);
-    valve_timer_init(&valve_close_timer,valve_close_timer_callback,30000,0);
-    valve_timer_init(&valve_detect_timer,valve_detect_timer_callback,60*1000*5,0);
-    valve_timer_init(&valve_open_once_timer,valve_open_once_timer_callback,2*1000,0);
-    valve_timer_init(&valve_check_timer,valva_check_timer_callback,1000,1);
+    valve_timer_init(&valve_open_timer, valve_open_timer_callback, 30000, 0);
+    valve_timer_init(&valve_close_timer, valve_close_timer_callback, 30000, 0);
+    valve_timer_init(&valve_detect_timer, valve_detect_timer_callback, 60 * 1000 * 5, 0);
+    valve_timer_init(&valve_open_once_timer, valve_open_once_timer_callback, 2 * 1000, 0);
+    valve_timer_init(&valve_check_timer, valva_check_timer_callback, 1000, 1);
     valve_timer_start(&valve_open_once_timer);
+}
+
+uint8_t get_valve_test_status()
+{
+    uint8_t data = 0;
+    data |= valve_status << 1;
+    data |= internal_valve_close_result << 2;
+    data |= internal_valve_open_result << 3;
+    data |= internal_valve_check_result << 4;
+    data |= external_valve_close_result << 5;
+    data |= external_valve_open_result << 6;
+    data |= external_valve_check_result << 7;
+    return data;
 }

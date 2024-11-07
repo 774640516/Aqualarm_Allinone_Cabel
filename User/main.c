@@ -82,5 +82,6 @@ int main(void)
         button_handle();
         led_handle();
         valve_handle();
+        Device_Factory_Handle();
     }
 }

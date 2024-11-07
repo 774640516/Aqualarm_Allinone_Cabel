@@ -1409,7 +1409,54 @@ void PD_Main_Proc()
 uint8_t pd_valve_status = 0;
 uint16_t pd_valve_time = 0;
 
+uint8_t pd_open_flag = 0;
+uint8_t pd_close_flag = 0;
+uint8_t pd_check_flag = 0;
+uint8_t pd_test_flag = 0;
+
 uint8_t pd_valve_send_buff[16];
+
+void my_pd_Test_Send(uint8_t info_status)
+{
+    pd_valve_send_buff[0] = 0x08;
+    pd_valve_send_buff[1] = 0x02;
+    pd_valve_send_buff[2] = 0x00;
+    pd_valve_send_buff[3] = info_status;
+    pd_valve_send_buff[4] = 0x00;
+    pd_valve_send_buff[5] = 0x00;
+    pd_valve_send_buff[6] = 0x00;
+    pd_valve_send_buff[7] = 0x00;
+    pd_valve_send_buff[8] = 0x00;
+    pd_valve_send_buff[9] = 0x00;
+    pd_valve_send_buff[10] = 0x00;
+    pd_valve_send_buff[11] = 0x00;
+    PD_Load_Header(0x00, DEF_TYPE_TEST);
+    PD_Send_Handle(pd_valve_send_buff, 12);
+}
+void my_pd_valve_connect(uint8_t connect)
+{
+    if (connect == 0)   //open
+    {
+        pd_valve_send_buff[0] = 0x02;
+    }
+    else if (connect == 1)  //close
+    {
+        pd_valve_send_buff[0] = 0x03;
+    }
+    else if (connect == 2)  //check
+    {
+        pd_valve_send_buff[0] = 0x04;   
+    }
+    
+    pd_valve_send_buff[1] = 0x00;
+    pd_valve_send_buff[2] = 0x00;
+    pd_valve_send_buff[3] = 0x00;
+
+    PD_Load_Header(0x00, DEF_TYPE_TEST);
+    PD_Send_Handle(pd_valve_send_buff, 4);
+}
+
+
 void my_pd_connect_valve() // PD 通讯测试
 {
 
@@ -1452,6 +1499,7 @@ void my_pd_connect_valve() // PD 通讯测试
             {
                 my_Valve_Controls_Close();
             }
+            pd_valve_time = 0;
         }
         if (valve_connect == 0)
         {
@@ -1460,6 +1508,22 @@ void my_pd_connect_valve() // PD 通讯测试
         }
         break;
     case 3:
+        if(my_time_tick(&pd_valve_time)){
+            if(pd_open_flag){
+                pd_open_flag = 0;
+                my_pd_valve_connect(0);
+            }else if(pd_close_flag){
+                pd_close_flag = 0;
+                my_pd_valve_connect(1);
+            }else if(pd_check_flag){
+                pd_check_flag = 0;
+                my_pd_valve_connect(2);
+            }else if(pd_test_flag){
+                pd_test_flag = 0;
+                my_pd_Test_Send(my_Valve_Info_Status_Get());
+            }
+            pd_valve_time = 100;
+        }
         if (valve_connect == 0)
         {
             pd_valve_status = 0;
@@ -1471,48 +1535,34 @@ void my_pd_connect_valve() // PD 通讯测试
 
 void my_pd_close_valve()
 {
-    pd_valve_send_buff[0] = 0x03;
-    pd_valve_send_buff[1] = 0x00;
-    pd_valve_send_buff[2] = 0x00;
-    pd_valve_send_buff[3] = 0x00;
+    pd_close_flag = 1;
+    // pd_valve_send_buff[0] = 0x03;
+    // pd_valve_send_buff[1] = 0x00;
+    // pd_valve_send_buff[2] = 0x00;
+    // pd_valve_send_buff[3] = 0x00;
 
-    PD_Load_Header(0x00, DEF_TYPE_TEST);
-    PD_Send_Handle(pd_valve_send_buff, 4);
+    // PD_Load_Header(0x00, DEF_TYPE_TEST);
+    // PD_Send_Handle(pd_valve_send_buff, 4);
 }
 void my_pd_open_valve()
 {
-    pd_valve_send_buff[0] = 0x02;
-    pd_valve_send_buff[1] = 0x00;
-    pd_valve_send_buff[2] = 0x00;
-    pd_valve_send_buff[3] = 0x00;
+    pd_open_flag = 1;
+    // pd_valve_send_buff[0] = 0x02;
+    // pd_valve_send_buff[1] = 0x00;
+    // pd_valve_send_buff[2] = 0x00;
+    // pd_valve_send_buff[3] = 0x00;
 
-    PD_Load_Header(0x00, DEF_TYPE_TEST);
-    PD_Send_Handle(pd_valve_send_buff, 4);
+    // PD_Load_Header(0x00, DEF_TYPE_TEST);
+    // PD_Send_Handle(pd_valve_send_buff, 4);
 }
 void my_pd_check_valve()
 {
-    pd_valve_send_buff[0] = 0x04;
-    pd_valve_send_buff[1] = 0x00;
-    pd_valve_send_buff[2] = 0x00;
-    pd_valve_send_buff[3] = 0x00;
+    pd_check_flag = 1;
+    // pd_valve_send_buff[0] = 0x04;
+    // pd_valve_send_buff[1] = 0x00;
+    // pd_valve_send_buff[2] = 0x00;
+    // pd_valve_send_buff[3] = 0x00;
 
-    PD_Load_Header(0x00, DEF_TYPE_TEST);
-    PD_Send_Handle(pd_valve_send_buff, 4);
-}
-void my_pd_Test_Send(uint8_t info_status)
-{
-    pd_valve_send_buff[0] = 0x08;
-    pd_valve_send_buff[1] = 0x02;
-    pd_valve_send_buff[2] = 0x00;
-    pd_valve_send_buff[3] = info_status;
-    pd_valve_send_buff[4] = 0x00;
-    pd_valve_send_buff[5] = 0x00;
-    pd_valve_send_buff[6] = 0x00;
-    pd_valve_send_buff[7] = 0x00;
-    pd_valve_send_buff[8] = 0x00;
-    pd_valve_send_buff[9] = 0x00;
-    pd_valve_send_buff[10] = 0x00;
-    pd_valve_send_buff[11] = 0x00;
-    PD_Load_Header(0x00, DEF_TYPE_TEST);
-    PD_Send_Handle(pd_valve_send_buff, 12);
+    // PD_Load_Header(0x00, DEF_TYPE_TEST);
+    // PD_Send_Handle(pd_valve_send_buff, 4);
 }

@@ -1,5 +1,7 @@
 {
     "files.associations": {
-        "pd_process.h": "c"
+        "pd_process.h": "c",
+        "water_work.h": "c",
+        "debug.h": "c"
     }
 }

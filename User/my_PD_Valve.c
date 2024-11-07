@@ -60,7 +60,7 @@ void my_Valve_Info_Status_Set(uint8_t data) // 设置阀门产测中的各种状
     valve_info = data;
     if (valve_status == 1)
     {
-        my_pd_Test_Send(0);
+        my_pd_Test_Send(valve_info);
     }
     else if (valve_status == 2)
     {
