@@ -17,33 +17,60 @@ static uint8_t valve_check_error = 0;   // 阀门自检错误
 static uint8_t valve_open_timeout = 0;  // 阀门开到位超时
 static uint8_t valve_close_timeout = 0; // 阀门关到位超时
 
+static uint8_t valve_factory = 0; // 阀门产测标志
+static uint8_t valve_action = 0;  // 阀门测试标志位
+static uint8_t valve_info = 0;    // 阀门产测状态
+
 static uint8_t spi_connect_status = 0; // 与SPI通讯状态
 
+uint8_t my_Valve_Factory_Status_Get() // 读取阀门是否进入产测模式
+{
+    return valve_factory;
+}
+uint8_t my_Valve_Action_Status_Get() // 读取阀门产测对应内容标志位
+{
+    return valve_action;
+}
 uint8_t my_Valve_Status_Get() // 读取与阀门的连接状态
 {
     return valve_status;
 }
-void my_Valve_Connect_PD(uint8_t Test_Status) // 主机作为供电端连接阀门
+void my_Valve_Connect_PD() // 主机作为供电端连接阀门
 {
-    if (Test_Status == 0)
+    valve_status = 1;
+}
+void my_Valve_Connect_SPI() // 子机作为供电端连接阀门
+{
+    valve_status = 2;
+}
+void my_Valve_Factory_On() // 启动阀门产测
+{
+    valve_factory = 1;
+}
+// void my_Vakve_Action_Status_Set(uint8_t data) // 设置阀门产测对应内容
+// {
+//     valve_action = data;
+// }
+void my_Valve_Action_Bit_On(uint8_t addr) // 设置阀门产测对应内容
+{
+    valve_action |= (1 << addr);
+}
+void my_Valve_Info_Status_Set(uint8_t data) // 设置阀门产测中的各种状态
+{
+    valve_info = data;
+    if (valve_status == 1)
     {
-        valve_status = 1;
+        my_pd_Test_Send(0);
     }
-    else
+    else if (valve_status == 2)
     {
-        valve_status = 3;
+        my_spi_info_valve();
+        spi_connect_status = 0;
     }
 }
-void my_Valve_Connect_SPI(uint8_t Test_Status) // 子机作为供电端连接阀门
+uint8_t my_Valve_Info_Status_Get() // 获取阀门产测中的各种状态
 {
-    if (Test_Status == 0)
-    {
-        valve_status = 2;
-    }
-    else
-    {
-        valve_status = 3;
-    }
+    return valve_info;
 }
 void my_Valve_Disconnect() // 主机或子机与阀门断开连接
 {
@@ -163,11 +190,11 @@ uint8_t my_Valve_Get_Status() // 读取阀门状态
 }
 uint8_t my_Valve_Get_Error() // 读取阀门异常
 {
-    printf("get External Valve Error %02x\r\n",(valve_power_error << 3) + (valve_check_error << 2) + (valve_open_timeout << 1) + valve_close_timeout);
+    printf("get External Valve Error %02x\r\n", (valve_power_error << 3) + (valve_check_error << 2) + (valve_open_timeout << 1) + valve_close_timeout);
     return (valve_power_error << 3) + (valve_check_error << 2) + (valve_open_timeout << 1) + valve_close_timeout;
 }
 
-void my_PD_Valve_Receive(uint8_t *buff)     //PD接收数据处理函数
+void my_PD_Valve_Receive(uint8_t *buff) // PD接收数据处理函数
 {
     if (buff[2] == 0xAA && buff[3] == 0x55)
     {
@@ -198,7 +225,7 @@ void my_PD_Valve_Receive(uint8_t *buff)     //PD接收数据处理函数
         }
         else if (buff[0] == 0x02) // 开关到位HALL信号
         {
-            my_Valve_Set_Status((buff[1] & 0x02) >> 1,buff[1] & 0x01);
+            my_Valve_Set_Status((buff[1] & 0x02) >> 1, buff[1] & 0x01);
         }
         else if (buff[0] == 0x03) // 阀门自检成功
         {
@@ -206,6 +233,20 @@ void my_PD_Valve_Receive(uint8_t *buff)     //PD接收数据处理函数
             {
             case 0: // 阀门自检成功
                 my_Valve_Set_check_error(0);
+                break;
+            }
+        }
+        else if (buff[0] == 0x04)
+        {
+            switch (buff[1])
+            {
+            case 0:
+                my_Valve_Action_Bit_On(1);
+                // my_Valve_Controls_Check();
+                break;
+            case 1:
+                my_Valve_Action_Bit_On(2);
+                // my_Valve_Controls_Close();
                 break;
             }
         }

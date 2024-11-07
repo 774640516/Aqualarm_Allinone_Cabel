@@ -222,6 +222,7 @@ void my_spi_receive_show()
 }
 
 static uint8_t spi_control_status = 0;
+static uint8_t spi_info_status = 0;
 void my_spi_open_valve() // spi子机打开阀门
 {
     spi_control_status = 1;
@@ -240,7 +241,11 @@ void my_spi_read_status_of_valve() // SPI子机读取开关到位
 }
 void my_spi_read_error_of_valve() // SPI子机读取阀门异常
 {
-//    spi_control_status = 5;
+    //    spi_control_status = 5;
+}
+void my_spi_info_valve()
+{
+    spi_info_status = 1;
 }
 
 void my_spi_handle()
@@ -362,23 +367,24 @@ void my_spi_handle()
         }
         if (receive_flag == 1)
         {
+            printf("receive Connect");
             my_spi_receive_show();
             if ((receive_buff[1] & 0x7f) == 0x24) // 当子机为供电端连接阀门时
             {
                 spi_thread = 9;
                 spi_time = 500;
-                if(get_valve_status()){
-                    spi_control_status = 1;
-                }else {
-                    spi_control_status = 2;
-                }
-                if (receive_buff[1] & 0x80)
+                if (get_valve_status())
                 {
-                    my_Valve_Connect_SPI(1);
+                    spi_control_status = 1;
                 }
                 else
                 {
-                    my_Valve_Connect_SPI(0);
+                    spi_control_status = 2;
+                }
+                my_Valve_Connect_SPI();
+                if (receive_buff[1] & 0x80)
+                {
+                    my_Valve_Factory_On();
                 }
             }
         }
@@ -388,7 +394,14 @@ void my_spi_handle()
         {
             spi_thread = 10;
             spi_time = 500;
-            my_spi_read(0x07, 3);
+            if (my_Valve_Factory_Status_Get() == 0)
+            {
+                my_spi_read(0x07, 3);
+            }
+            else
+            {
+                my_spi_read(0x0a, 2);
+            }
         }
         else if (spi_control_status)
         {
@@ -403,27 +416,17 @@ void my_spi_handle()
             case 3:
                 my_spi_write(0x83, 0x01, 0x00, 2);
                 break;
-            case 4:
-//                my_spi_read(0x07, 2);
-                break;
-            case 5:
-//                my_spi_read(0x04, 2);
-                break;
             }
-            if (spi_control_status >= 1 && spi_control_status <= 3)
-            { // 往SPI子机写入数据
-                spi_thread = 11;
-            }
-//            else if (spi_control_status == 5)
-//            { // 读取SPI子机数据
-//                spi_thread = 12;
-//            }
-//            else if (spi_control_status == 4)
-//            {
-//                spi_thread = 10;
-//            }
+            spi_thread = 11;
             spi_time = 500;
             spi_control_status = 0;
+        }
+        else if (spi_info_status)
+        {
+            my_spi_write(0x89, my_Valve_Info_Status_Get(), 0x00, 2);
+            spi_thread = 11;
+            spi_time = 500;
+            spi_info_status = 0;
         }
         break;
     case 10: // 读取阀门开关到位状态
@@ -436,21 +439,44 @@ void my_spi_handle()
         if (receive_flag == 1)
         {
             my_spi_receive_show();
-            if ((receive_buff[1] & 0xfc) == 0xfc) // 当子机还来连接着阀门时，判断阀门状态
+            if (my_Valve_Factory_Status_Get() == 0)
             {
-                my_Valve_Set_Status((receive_buff[1] & 0x02) >> 1, receive_buff[1] & 0x01);
-                my_Valve_Set_power_error((receive_buff[2] & 0x08) >> 3);
-                my_Valve_Set_check_error((receive_buff[2] & 0x04) >> 2);
-                my_Valve_Set_open_timeout((receive_buff[2] & 0x02) >> 1);
-                my_Valve_Set_close_timeout(receive_buff[2] & 0x01);
-                spi_thread = 9;
+                if ((receive_buff[1] & 0xfc) == 0xfc) // 当子机还来连接着阀门时，判断阀门状态
+                {
+                    my_Valve_Set_Status((receive_buff[1] & 0x02) >> 1, receive_buff[1] & 0x01);
+                    my_Valve_Set_power_error((receive_buff[2] & 0x08) >> 3);
+                    my_Valve_Set_check_error((receive_buff[2] & 0x04) >> 2);
+                    my_Valve_Set_open_timeout((receive_buff[2] & 0x02) >> 1);
+                    my_Valve_Set_close_timeout(receive_buff[2] & 0x01);
+                    spi_thread = 9;
+                }
+                else
+                {
+                    my_Valve_Disconnect();
+                    spi_thread = 7;
+                }
             }
             else
             {
-                my_Valve_Disconnect();
-                spi_thread = 7;
+                spi_thread = 9;
+                if (receive_buff[1] & 0x02)
+                { // check
+                    // if ((my_Valve_Action_Status_Get() & 0x02) == 0)
+                    // {
+                    //     spi_control_status = 3;
+                    // }
+                    my_Valve_Action_Bit_On(1);
+                }
+                if (receive_buff[1] & 0x04)
+                { // close
+                    // if ((my_Valve_Action_Status_Get() & 0x04) == 0)
+                    // {
+                    //     spi_control_status = 2;
+                    // }
+                    my_Valve_Action_Bit_On(2);
+                }
             }
-            spi_time = 1000;
+            spi_time = 500;
         }
         break;
     case 11: // 设置阀门开关自检
@@ -461,13 +487,13 @@ void my_spi_handle()
                 my_spi_receive_show();
                 GPIO_WriteBit(GPIOA, GPIO_Pin_4, 1);
                 spi_thread = 9;
-                spi_time = 1000;
+                spi_time = 500;
             }
         }
         else if (my_time_tick(&spi_time))
         { // 子机SPI未响应
             spi_thread = 9;
-            spi_time = 1000;
+            spi_time = 500;
             my_Spi_Connect_Error();
         }
         break;
@@ -481,7 +507,7 @@ void my_spi_handle()
         if (receive_flag == 1)
         {
             my_spi_receive_show();
-//            my_Valve_Set_Status((receive_buff[1] & 0x02) >> 1, receive_buff[1] & 0x01);
+            //            my_Valve_Set_Status((receive_buff[1] & 0x02) >> 1, receive_buff[1] & 0x01);
             my_Valve_Set_power_error((receive_buff[1] & 0x08) >> 3);
             my_Valve_Set_check_error((receive_buff[1] & 0x04) >> 2);
             my_Valve_Set_open_timeout((receive_buff[1] & 0x02) >> 1);

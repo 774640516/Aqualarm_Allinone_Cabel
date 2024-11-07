@@ -61,6 +61,8 @@ uint16_t connect_time = 0;
 
 uint8_t valve_connect = 0; // 阀门连接状态
 
+uint8_t pd_Test_mode = 0;
+
 #define CONNECT_TIMEOUT 3000
 /* PD3.0 */
 UINT8 SrcCap_Ext_Tab[28] =
@@ -1150,16 +1152,23 @@ void PD_Main_Proc()
             status = PD_Send_Handle(NULL, 0);
             if (status == DEF_PD_TX_OK)
             {
-                if (valve_connect)
+                //                 if (valve_connect)
+                //                 {
+                // //                    start_PD12V();
+                //                     my_spi_SRC(src_vbus_type, src_vbus_current, 1);
+                //                 }
+                //                 else
+                //                 {
+                //                     my_spi_SRC(src_vbus_type, src_vbus_current, 0);
+                //                 }
+                if (valve_connect == 1)
                 {
-//                    start_PD12V();
-                    my_spi_SRC(src_vbus_type, src_vbus_current, 1);
+                    valve_connect = 2;
                 }
-                else
+                if (pd_Test_mode)
                 {
-                    my_spi_SRC(src_vbus_type, src_vbus_current, 0);
+                    my_Valve_Factory_On();
                 }
-
                 printf("PS ready\r\n");
                 PD_Ctl.PD_State = STA_IDLE;
                 PD_Ctl.PD_Comm_Timer = 0;
@@ -1252,7 +1261,7 @@ void PD_Main_Proc()
             }
             else
             {
-                
+                pd_Test_mode = 0;
                 if (PD_Rx_Buf[6] == 0x55 && PD_Rx_Buf[7] == 0xAA && PD_Rx_Buf[8] == 0x55 && PD_Rx_Buf[9] == 0xAA)
                 {
                     if (SrcCap_size == 12)
@@ -1266,7 +1275,24 @@ void PD_Main_Proc()
                         Vbus_Select = PD_Ctl.ReqPDO_Idx;
                     }
                     valve_connect = 1;
-                }else {
+                }
+                else if (PD_Rx_Buf[6] == 0x55 && PD_Rx_Buf[7] == 0x55 && PD_Rx_Buf[8] == 0xAA && PD_Rx_Buf[9] == 0xAA)
+                {
+                    pd_Test_mode = 1;
+                    if (SrcCap_size == 12)
+                    {
+                        pd_power_error = 0;
+                        Vbus_Select = 3;
+                    }
+                    else
+                    {
+                        pd_power_error = 1;
+                        Vbus_Select = PD_Ctl.ReqPDO_Idx;
+                    }
+                    valve_connect = 1;
+                }
+                else
+                {
                     Vbus_Select = PD_Ctl.ReqPDO_Idx;
                 }
                 src_vbus_type = Vbus_Select;
@@ -1293,7 +1319,8 @@ void PD_Main_Proc()
         case DEF_TYPE_PS_RDY:
             /* PS_RDY is received */
             my_spi_SNK(snk_vbus_type, snk_vbus_current);
-            if(snk_vbus_type == 3){
+            if (snk_vbus_type == 3)
+            {
                 // start_PD12V();
                 pd_chip_lock_voltage_set(3);
             }
@@ -1383,17 +1410,17 @@ uint8_t pd_valve_status = 0;
 uint16_t pd_valve_time = 0;
 
 uint8_t pd_valve_send_buff[16];
-
 void my_pd_connect_valve() // PD 通讯测试
 {
+
     switch (pd_valve_status)
     {
     case 0:
-        if (valve_connect == 1)
+        if (valve_connect == 2)
         {
             printf("PD Valve Connect\r\n");
             pd_valve_status = 1;
-            pd_valve_time = 2000;
+            pd_valve_time = 10;
         }
         break;
     case 1:
@@ -1408,17 +1435,21 @@ void my_pd_connect_valve() // PD 通讯测试
 
             PD_Load_Header(0x00, DEF_TYPE_TEST);
             PD_Send_Handle(pd_valve_send_buff, 4);
-            my_Valve_Connect_PD(0);
+            my_Valve_Connect_PD();
             my_Valve_Set_power_error(pd_power_error);
             pd_valve_time = 500;
         }
         break;
     case 2:
-        if (my_time_tick(&pd_valve_time)){
+        if (my_time_tick(&pd_valve_time))
+        {
             pd_valve_status = 3;
-            if(get_valve_status()){
+            if (get_valve_status())
+            {
                 my_Valve_Controls_Open();
-            }else {
+            }
+            else
+            {
                 my_Valve_Controls_Close();
             }
         }
@@ -1427,7 +1458,6 @@ void my_pd_connect_valve() // PD 通讯测试
             pd_valve_status = 0;
             my_Valve_Disconnect();
         }
-
         break;
     case 3:
         if (valve_connect == 0)
@@ -1468,4 +1498,21 @@ void my_pd_check_valve()
 
     PD_Load_Header(0x00, DEF_TYPE_TEST);
     PD_Send_Handle(pd_valve_send_buff, 4);
+}
+void my_pd_Test_Send(uint8_t info_status)
+{
+    pd_valve_send_buff[0] = 0x08;
+    pd_valve_send_buff[1] = 0x02;
+    pd_valve_send_buff[2] = 0x00;
+    pd_valve_send_buff[3] = info_status;
+    pd_valve_send_buff[4] = 0x00;
+    pd_valve_send_buff[5] = 0x00;
+    pd_valve_send_buff[6] = 0x00;
+    pd_valve_send_buff[7] = 0x00;
+    pd_valve_send_buff[8] = 0x00;
+    pd_valve_send_buff[9] = 0x00;
+    pd_valve_send_buff[10] = 0x00;
+    pd_valve_send_buff[11] = 0x00;
+    PD_Load_Header(0x00, DEF_TYPE_TEST);
+    PD_Send_Handle(pd_valve_send_buff, 12);
 }

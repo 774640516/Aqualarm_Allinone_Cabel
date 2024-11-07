@@ -57,6 +57,8 @@ void my_pd_close_valve();
 void my_pd_open_valve();
 void my_pd_check_valve();
 
+void my_pd_Test_Send(uint8_t info_status);
+
 #ifdef __cplusplus
 }
 #endif
