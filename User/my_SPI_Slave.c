@@ -387,6 +387,11 @@ void my_spi_handle()
                     my_Valve_Factory_On();
                 }
             }
+            else if (receive_buff[1] == 0x30)
+            {
+                spi_thread = 5;
+                spi_time = 1000;
+            }
         }
         break;
     case 9: // 9-10为1S读取一次SPI阀门状态 ，并且根据外部命令设置和读取SPI子机

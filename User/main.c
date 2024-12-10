@@ -22,7 +22,7 @@
 #include "PD_Process.h"
 #include "my_I2C_Device.h"
 #include "my_PD_Device.h"
-
+#include "Device_GPIO_I2C.h"
 uint16_t set_Vbus;
 
 uint8_t valve_connect_status = 0;
@@ -34,7 +34,7 @@ void my_rcc()
     RCC_APB2PeriphClockCmd(RCC_APB2Periph_SPI1 | RCC_APB2Periph_USART1 | RCC_APB2Periph_GPIOA | RCC_APB2Periph_GPIOB | RCC_APB2Periph_GPIOC |
                                RCC_APB2Periph_ADC1 | RCC_APB2Periph_AFIO |
                                RCC_AHBPeriph_USBPD | RCC_APB2Periph_TIM1 | RCC_APB1Periph_TIM3 | RCC_APB1Periph_I2C1 | RCC_AHBPeriph_USBFS,
-                           ENABLE);
+                       ENABLE);
 }
 
 void IWDG_Feed_Init(u16 prer, u16 rlr)
@@ -66,7 +66,7 @@ int main(void)
     PD_Init();
 
     TIM1_Init(999, 48 - 1);
-    IIC_Init(80000, 0x02);
+    Device_GPIO_I2C_Init(0);
     my_SC8726_Init();
     my_SPI_Master_Init(); 
     IWDG_Feed_Init(IWDG_Prescaler_128, 4000);

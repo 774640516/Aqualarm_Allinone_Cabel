@@ -16,6 +16,6 @@ C_DEPS += \
 
 # Each subdirectory must supply rules for building sources it contributes
 Debug/%.o: ../Debug/%.c
-	@	@	riscv-none-embed-gcc -march=rv32imacxw -mabi=ilp32 -msmall-data-limit=8 -msave-restore -Os -fmessage-length=0 -fsigned-char -ffunction-sections -fdata-sections -fno-common -Wunused -Wuninitialized  -g -I"C:\Users\GW\Desktop\Aqualarm_Allinone_Cabel-master\Debug" -I"C:\Users\GW\Desktop\Aqualarm_Allinone_Cabel-master\Core" -I"C:\Users\GW\Desktop\Aqualarm_Allinone_Cabel-master\User" -I"C:\Users\GW\Desktop\Aqualarm_Allinone_Cabel-master\Peripheral\inc" -std=gnu99 -MMD -MP -MF"$(@:%.o=%.d)" -MT"$(@)" -c -o "$@" "$<"
+	@	@	riscv-none-embed-gcc -march=rv32imacxw -mabi=ilp32 -msmall-data-limit=8 -msave-restore -Os -fmessage-length=0 -fsigned-char -ffunction-sections -fdata-sections -fno-common -Wunused -Wuninitialized  -g -I"C:\MRS_DATA\workspace\Aqualarm_Allinone_Cabel-master\Debug" -I"C:\MRS_DATA\workspace\Aqualarm_Allinone_Cabel-master\Core" -I"C:\MRS_DATA\workspace\Aqualarm_Allinone_Cabel-master\User" -I"C:\MRS_DATA\workspace\Aqualarm_Allinone_Cabel-master\Peripheral\inc" -std=gnu99 -MMD -MP -MF"$(@:%.o=%.d)" -MT"$(@)" -c -o "$@" "$<"
 	@	@
 

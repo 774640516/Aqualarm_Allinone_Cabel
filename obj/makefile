@@ -53,7 +53,7 @@ all: CH32X035G8U6_AIO_Master.elf secondary-outputs
 
 # Tool invocations
 CH32X035G8U6_AIO_Master.elf: $(OBJS) $(USER_OBJS)
-	@	@	riscv-none-embed-gcc -march=rv32imacxw -mabi=ilp32 -msmall-data-limit=8 -msave-restore -Os -fmessage-length=0 -fsigned-char -ffunction-sections -fdata-sections -fno-common -Wunused -Wuninitialized  -g -T "C:\Users\GW\Desktop\Aqualarm_Allinone_Cabel-master\Ld\Link.ld" -nostartfiles -Xlinker --gc-sections -Wl,-Map,"CH32X035G8U6_AIO_Master.map" --specs=nano.specs --specs=nosys.specs -o "CH32X035G8U6_AIO_Master.elf" $(OBJS) $(USER_OBJS) $(LIBS)
+	@	@	riscv-none-embed-gcc -march=rv32imacxw -mabi=ilp32 -msmall-data-limit=8 -msave-restore -Os -fmessage-length=0 -fsigned-char -ffunction-sections -fdata-sections -fno-common -Wunused -Wuninitialized  -g -T "C:\MRS_DATA\workspace\Aqualarm_Allinone_Cabel-master\Ld\Link.ld" -nostartfiles -Xlinker --gc-sections -Wl,-Map,"CH32X035G8U6_AIO_Master.map" --specs=nano.specs --specs=nosys.specs -o "CH32X035G8U6_AIO_Master.elf" $(OBJS) $(USER_OBJS) $(LIBS)
 	@	@
 CH32X035G8U6_AIO_Master.hex: CH32X035G8U6_AIO_Master.elf
 	@	riscv-none-embed-objcopy -O ihex "CH32X035G8U6_AIO_Master.elf"  "CH32X035G8U6_AIO_Master.hex"

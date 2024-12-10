@@ -2,6 +2,9 @@
     "files.associations": {
         "pd_process.h": "c",
         "water_work.h": "c",
-        "debug.h": "c"
+        "debug.h": "c",
+        "device_gpio_i2c.h": "c",
+        "my_i2c_device.h": "c",
+        "my_pd_device.h": "c"
     }
 }

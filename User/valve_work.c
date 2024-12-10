@@ -261,7 +261,10 @@ void valve_detect_timer_callback(void *parameter)
 
 void valve_open_once_timer_callback(void *parameter)
 {
-    valve_open();
+    if(DeviceStatus == ValveClose || DeviceStatus == ValveOpen || DeviceStatus == MasterSensorLost)
+    {
+        valve_open();
+    }
 }
 
 void valve_timer_check(struct valve_timer *timer)
