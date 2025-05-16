@@ -62,7 +62,7 @@ int main(void)
 
     printf("SystemClk:%d\r\n", SystemCoreClock);
     printf("ChipID:%08x\r\n", DBGMCU_GetCHIPID());
-    printf("V1.0.2\r\n");
+    printf("V1.0.3\r\n");
     PD_Init();
 
     TIM1_Init(999, 48 - 1);

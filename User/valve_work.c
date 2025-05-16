@@ -120,7 +120,7 @@ void valva_check_timer_callback(void *parameter)
     case 0://start turn
         if(valve_status == VALVE_STATUS_OPEN)
         {
-            valve_turn_control(1);
+            GPIO_WriteBit(GPIOB, GPIO_Pin_12, Bit_SET);
             my_Valve_Controls_Check();
         }
         else
@@ -131,7 +131,7 @@ void valva_check_timer_callback(void *parameter)
     case 15://check start and turn back
         if(GPIO_ReadInputDataBit(GPIOB,GPIO_Pin_4) == 0)
         {
-            valve_turn_control(-1);
+            GPIO_WriteBit(GPIOB, GPIO_Pin_12, Bit_RESET);
         }
         else
         {
@@ -143,13 +143,14 @@ void valva_check_timer_callback(void *parameter)
     case 20://check back and turn forward
         if(GPIO_ReadInputDataBit(GPIOB,GPIO_Pin_4) == 1)
         {
-            valve_turn_control(1);
+            GPIO_WriteBit(GPIOB, GPIO_Pin_12, Bit_SET);
         }
         else
         {
             valve_valid = 0;
             valve_timer_stop(&valve_check_timer);
             warning_enable(InternalValveFailEvent);
+            GPIO_WriteBit(GPIOB, GPIO_Pin_12, Bit_SET);
         }
         break;
     case 28://check forward
